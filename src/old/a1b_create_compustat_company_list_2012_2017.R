@@ -1,6 +1,3 @@
-library(haven)
-jobs <- read_sas("/Users/pedrovallocci/Documents/PhD (local)/Research/By Topic/Bargaining Power/data/jobs_with_accounts.sas7bdat", 
-                               NULL)
 
 library(dplyr)
 write.csv(jobs, file = "/Users/pedrovallocci/Documents/PhD (local)/Research/By Topic/Bargaining Power/data/cleaned_jobs.csv")
