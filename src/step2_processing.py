@@ -308,3 +308,4 @@ else:
     dhi_crsp_fullmerge = pd.read_pickle('../data/dhi_crsp_fullmerge.pkl')
 
 dhi_crsp_fullmerge.to_csv('../data/dhi_crsp_fullmerge.csv')
+#bla 
