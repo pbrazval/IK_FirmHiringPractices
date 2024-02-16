@@ -1,2 +1,7 @@
 # Ignore data subfolder
 data/
+text/
+src/old/
+src/__pycache__/
+src/samples/
+src/creds.py

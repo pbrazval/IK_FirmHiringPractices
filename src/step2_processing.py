@@ -1,11 +1,6 @@
-####################################################################################################################
-## BEGIN: ADDING PACKAGES AND SETTINGS
-####################################################################################################################
 
-import pandas as pd, numpy as np, re, ray, time
+import pandas as pd, numpy as np, os, re, ray, time
 from fuzzywuzzy import fuzz
-
-import os
 
 # Set the current working directory to the directory of the script
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -15,7 +10,7 @@ redo_dhi_cleaning = True
 redo_interpret_dhi_payrates = True
 redo_dict_creation = False
 redo_dhi_firmcodes = False
-redo_classify_jobs = False
+redo_classify_jobs = True
 
 ####################################################################################################################
 ## END: ADDING PACKAGES AND SETTINGS
@@ -91,8 +86,6 @@ def clean(dirty_column):
 
     return clean_column  # Return the cleaned list
 
-import re  # Import the regular expression module
-
 # Define a function named classify_jobs that takes a DataFrame named job_list as input
 def classify_jobs(job_list):
     # Extract the "job_title" column from the DataFrame and store it in jobname_column
@@ -134,6 +127,83 @@ def classify_jobs(job_list):
     # Return the augmented_table DataFrame with the additional columns
     return augmented_table
 
+def eval_seniority(job_list):
+    # Extract the "job_title" column from the DataFrame and store it in jobname_column
+    jobname_column = job_list["job_title"]
+    
+    # Initialize empty lists to store keyword presence for each category
+    senior_col = []
+    mid_col = []  # Define the mid_col list
+    entry_col = []  # Define the entry_col list
+    none_col = []  # Define the none_col list
+    
+    # Iterate through each job title in jobname_column
+    for name in jobname_column:
+        # Convert the job title to a string and make it lowercase for consistent handling
+        name = str(name)
+        name = name.lower()
+        
+        # Check if the job title contains specific keywords using regular expressions
+        is_entry = bool(re.search('recent graduate', name)) or \
+            bool(re.search('recent grad', name)) or \
+            bool(re.search('level 1', name)) or \
+            bool(re.search('level i', name)) or \
+            bool(re.search('junior level', name)) or \
+            bool(re.search('jr level', name)) or \
+            bool(re.search('junior', name)) or \
+            bool(re.search('jr', name)) or \
+            bool(re.search('level junior', name)) or \
+            bool(re.search('level jr', name)) or \
+            bool(re.search('entry level', name)) or \
+            bool(re.search('entrylevel', name)) or \
+            bool(re.search('level entry', name)) or \
+            bool(re.search('level level', name))
+
+        is_mid = bool(re.search('level 2', name)) or \
+            bool(re.search('level ii', name)) or \
+            bool(re.search('mid level', name)) or \
+            bool(re.search('midlevel', name)) or \
+            bool(re.search('mid tier', name)) or \
+            bool(re.search('midtier', name)) or \
+            bool(re.search('intermediate level', name)) or \
+            bool(re.search('intermediate', name)) or \
+            bool(re.search('mid', name))
+
+        is_senior = bool(re.search('level 3', name)) or \
+                bool(re.search('level 4', name)) or \
+                bool(re.search('level iii', name)) or \
+                bool(re.search('level iv', name)) or \
+                bool(re.search('sr', name)) or \
+                bool(re.search('senior level', name)) or \
+                bool(re.search('level senior', name)) or \
+                bool(re.search('senior', name)) or \
+                bool(re.search('principal', name)) or \
+                bool(re.search('lead', name)) or \
+                bool(re.search('team lead', name)) or \
+                bool(re.search('lead team', name))
+
+        is_none = not(is_entry or is_mid or is_senior)
+
+        # Append the Boolean values to their respective lists
+        senior_col.append(is_senior)  # Appending cleaned name to the senior_col list
+        mid_col.append(is_mid)  # Appending cleaned name to the mid_col list
+        entry_col.append(is_entry)  # Appending cleaned name to the entry_col list
+        none_col.append(is_none)  # Appending cleaned name to the none_col list
+    
+    # Create a copy of the original DataFrame and store it in augmented_table
+    augmented_table = job_list
+    
+    # Add the newly created columns to the augmented_table DataFrame
+    augmented_table['is_senior'] = senior_col
+    # Do the same for the mid_col, entry_col, and none_col lists:
+    augmented_table['is_mid'] = mid_col
+    augmented_table['is_entry'] = entry_col
+    augmented_table['is_none'] = none_col
+
+    
+    # Return the augmented_table DataFrame with the additional columns
+    return augmented_table
+
 
 # Define a function named jobs_by_firm that takes a DataFrame named dhi_database as input
 def jobs_by_firm(dhi_database):
@@ -157,7 +227,6 @@ def jobs_by_firm(dhi_database):
     
     # Return three vectors: company names, firm codes, and the ratio of jobs for each firm
     return dhi_fullname_vec, dhi_firmcode_vec, ratio_of_jobs_vec
-
 
 @ray.remote
 def decoratedfuzz(idxk):
@@ -200,7 +269,7 @@ if 'job_list' not in locals():
 
 if redo_classify_jobs:   
     print("Redoing classify jobs") 
-    job_list = classify_jobs(job_list)
+    job_list = eval_seniority(job_list)
     job_list.to_csv('../data/cleaned_jobs.csv') 
 
 if redo_dict_creation:
@@ -308,4 +377,5 @@ else:
     dhi_crsp_fullmerge = pd.read_pickle('../data/dhi_crsp_fullmerge.pkl')
 
 dhi_crsp_fullmerge.to_csv('../data/dhi_crsp_fullmerge.csv')
+
 #bla 
